@@ -1,0 +1,36 @@
+# test debian make test install requires docker >~ 1.5
+# docker build -f test/docker/debian/Dockerfile.wheezy .
+
+FROM debian:wheezy
+
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get -qq update \
+    && apt-get --no-install-recommends -qq upgrade \
+    && apt-get clean
+
+RUN apt-get --no-install-recommends -qq install \
+    bash \
+    bzip2 \
+    curl \
+    make \
+    shunit2 \
+    sudo \
+    zsh \
+    && apt-get clean
+
+RUN echo "deb http://http.us.debian.org/debian testing non-free contrib main" >> /etc/apt/sources.list \
+    && apt-get update \
+    && apt-get --no-install-recommends -qq -t testing install libc6-dev
+
+RUN useradd -d /app -r app;
+
+WORKDIR /app
+
+COPY . .
+RUN rm -rf test/opt && \
+    chown -R app . && \
+    sudo -u app make test && \
+    sudo -u app make && \
+    make install && \
+    bash -c "source /usr/local/share/chruby/chruby.sh && chruby && echo 'run after install OK'"
